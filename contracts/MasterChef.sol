@@ -15,7 +15,7 @@ import "./ERC20.sol";
 // Pool Token Reward per Share = Pool Reward / Total Staked Amount
 // Defi Staking Reward = My Staking * Pool Token Reward per Share
 
-contract N2DMasterChefV1 is Ownable, ReentrancyGuard {
+contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

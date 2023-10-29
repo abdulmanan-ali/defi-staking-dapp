@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol"
 
-contract N2DRewards is ERC20, ERC20Burnable, Ownable, AccessControl {
+contract MTKRewards is ERC20, ERC20Burnable, Ownable, AccessControl {
 
   using SafeMath for uint256;
   using SafeERC20 for ERC20;
@@ -21,7 +21,7 @@ contract N2DRewards is ERC20, ERC20Burnable, Ownable, AccessControl {
 
   bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
-  constructor() ERC20("N2D Rewards", "N2DR") {
+  constructor() ERC20("MyToken Rewards", "MTK") {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(MANAGER_ROLE, _msgSender());
       }
