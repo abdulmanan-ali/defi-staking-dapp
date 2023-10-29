@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ERC20-MasterChef.sol";
+import "./ERC20.sol";
 
 // -----------------------Formulas--------------------------
 
@@ -91,7 +91,14 @@ contract N2DMasterChefV1 is Ownable, ReentrancyGuard {
         );
     }
 
-    function getMultiplier(uint256 _multiplier) public onlyOwner {
+    function getMultiplier(
+        uint256 _from,
+        uint256 _to
+    ) public view returns (uint256) {
+        return _to.sub(_from).mul(BONUS_MULTIPLIER);
+    }
+
+    function updateMultiplier(uint256 _multiplier) public onlyOwner {
         BONUS_MULTIPLIER = _multiplier;
     }
 
@@ -115,5 +122,21 @@ contract N2DMasterChefV1 is Ownable, ReentrancyGuard {
             );
             poolInfo[0].allocPoint = points;
         }
+    }
+
+    function add(uint256 _allocPoint, IERC20 _lpToken) public onlyOwner {
+        checkDuplicatePool(_lpToken);
+        uint256 lastRewardBlock = block.number > startBlock
+            ? block.number
+            : startBlock;
+        totalAllocation = totalAllocation.add(_allocPoint);
+        poolInfo.push(
+            PoolInfo({
+                lpToken: _lpToken,
+                allocPoint: _allocPoint,
+                lastRewardBlock: lastRewardBlock,
+                rewardTokenPerShare: 0
+            })
+        );
     }
 }
