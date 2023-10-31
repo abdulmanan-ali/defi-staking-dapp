@@ -10,8 +10,8 @@ import "./ERC20.sol";
 
 // -----------------------Formulas--------------------------
 
-// Multiplier = (LastBlock - FirstBlock) * Bonus
-// Pool Reward = Multiplier * Coin Per Block * Pool Allocation / Total Allocation
+// multiplier = (LastBlock - FirstBlock) * Bonus
+// Pool Reward = multiplier * Coin Per Block * Pool Allocation / Total Allocation
 // Pool Token Reward per Share = Pool Reward / Total Staked Amount
 // Defi Staking Reward = My Staking * Pool Token Reward per Share
 
@@ -31,9 +31,9 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         uint256 rewardTokenPerShare;
     }
 
-    N2DRewards public n2dr;
-    address public dev;
-    uint256 public n2drPerBlock;
+    MTKRewards public mtk;
+    address public devaddr;
+    uint256 public mtkPerBlock;
 
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
 
@@ -43,21 +43,21 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     uint256 public BONUS_MULTIPLIER;
 
     constructor(
-        N2DRewards _n2dr,
-        address _dev,
-        uint256 _n2drPerBlock,
+        MTKRewards _mtk,
+        address _devaddr,
+        uint256 _mtkPerBlock,
         uint256 _startBlock,
         uint256 _multiplier
     ) public {
-        n2dr = _n2dr;
-        dev = _dev;
-        n2drPerBlock = _n2drPerBlock;
+        mtk = _mtk;
+        devaddr = _devaddr;
+        mtkPerBlock = _mtkPerBlock;
         startBlock = _startBlock;
         BONUS_MULTIPLIER = _multiplier;
 
         poolInfo.push(
             PoolInfo({
-                lpToken: _n2dr,
+                lpToken: _mtk,
                 allocPoint: 10000,
                 lastRewardBlock: _startBlock,
                 rewardTokenPerShare: 0
@@ -65,6 +65,11 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         );
 
         totalAllocation = 10000;
+    }
+
+    modifier validatePool(uint256 _pid) {
+        require(_pid < poolInfo.length, "Pool id is Invalid");
+        _;
     }
 
     function poolLength() external view returns (uint256) {
@@ -112,7 +117,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     function updateStakingPool() internal {
         uint256 length = poolInfo.length;
         uint256 points = 0;
-        for (uint256 pid = 1; pid < length; pid++) {
+        for (uint256 pid = 1; pid < length; ++pid) {
             points = points.add(poolInfo[pid].allocPoint);
         }
         if (points != 0) {
@@ -138,5 +143,24 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
                 rewardTokenPerShare: 0
             })
         );
+        updateStakingPool();
+    }
+
+    function updatePool(uint256 _pid) public validatePool(_pid) {
+        PoolInfo storage pool = poolInfo[_pid];
+        if (block.number <= pool.lastRewardBlock) {
+            return;
+        }
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (lpSupply == 0) {
+            pool.lastRewardBlock = block.number;
+            return;
+        }
+        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+        uint256 tokenReward = multiplier.mul(mtkPerBlock).mul(pool.allocPoint).div(totalAllocation);
+        mtk.mint(devaddr, tokenReward.div(10));
+        mtk.mint(address(this), tokenReward);
+        pool.rewardTokenShare = pool.rewardTokenPerShare.add(tokenReward.mul(1e12).div(lpSupply));
+        pool.lastRewardBlock = block.number;
     }
 }
