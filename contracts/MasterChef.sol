@@ -160,7 +160,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         uint256 tokenReward = multiplier.mul(mtkPerBlock).mul(pool.allocPoint).div(totalAllocation);
         mtk.mint(devaddr, tokenReward.div(10));
         mtk.mint(address(this), tokenReward);
-        pool.rewardTokenShare = pool.rewardTokenPerShare.add(tokenReward.mul(1e12).div(lpSupply));
+        pool.rewardTokenPerShare = pool.rewardTokenPerShare.add(tokenReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 }
