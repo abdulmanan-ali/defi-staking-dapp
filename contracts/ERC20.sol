@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT 
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.18;
 
@@ -8,7 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol"
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
 
 contract MTKRewards is ERC20, ERC20Burnable, Ownable, AccessControl {
 
@@ -33,4 +34,14 @@ contract MTKRewards is ERC20, ERC20Burnable, Ownable, AccessControl {
     _mint(to, amount);
   }
 
+  function safeMtkTransfer(address _to, uint256 _amount) external {
+    require(hasRole(MANAGER_ROLE, _msgSender()), "Not allowed");
+    uint256 mtkBal = balanceOf(address(this));
+    if (_amount > mtkBal){
+      transfer(_to, mtkBal);
+    }
+    else {
+      transfer(_to, _amount);
+    }
+  }
 }

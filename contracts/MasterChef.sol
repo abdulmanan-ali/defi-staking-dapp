@@ -42,6 +42,10 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     uint256 public startBlock;
     uint256 public BONUS_MULTIPLIER;
 
+    event Deposit (address indexed user, uint256 indexed pid, uint256 amount);
+    event Withdraw (address indexed user, uint256 indexed pid, uint256 amount);
+    event EmergencyWithdraw (address indexed user, uint256 indexed pid, uint256 amount);
+
     constructor(
         MTKRewards _mtk,
         address _devaddr,
@@ -163,4 +167,104 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         pool.rewardTokenPerShare = pool.rewardTokenPerShare.add(tokenReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
+
+    function massUpdatePools() public { 
+        uint256 length = poolInfo.legth;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            updatePool(pid);
+        }
+    }
+
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+        uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
+        poolInfo[_pid].allocPoint = _allocPoint;
+        if (prevAllocPoint != _allocPoint) {
+        totalAllocation = totalAllocation.sub(prevAllocPoint).add(_allocPoint);
+        }
+    }
+
+    function pendingReward(uint256 _pid, address _user) public view returns (uint256) {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
+        uint256 rewardTokenPerShare = pool.rewardTokenPerShare;
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+            uint256 tokenReward = multiplier.mul(mtkPerBlock).mul(pool.allocPoint).div(totalAllocation);
+            rewardTokenPerShare = rewardTokenPerShare.add(tokenReward.mul(1e12).div(lpSupply));
+        }
+        return user.amount.mul(rewardTokenPerShare).div(1e12).sub(user.pendingReward);
+    }
+
+    function safeMtkTransfer (address _to, uint256 _amount) internal {
+        mtk.safeMtkTransfer(_to, _amount);
+    }
+
+    function stake(uint256 _pid, uint256 amount) public validatePool(_pid) {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        updatePool(_pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.rewardTokenPerShare).div(1e12).sub(user.pendingReward);
+            if (pending > 0) {
+                safeMtkTransfer(msg.sender, pending);
+            }
+        }
+        if (_amount > 0) {
+            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
+            user.amount = user.amount.add(_amount);
+        }
+        user.pendingReward = user.amount.mul(pool.rewardTokenPerShare).div(1e12);
+        emit Deposit(msg.sender, _pid, _amount);
+    }
+
+    function unstake(uint256 _pid, uint256 amount) public validatePool(_pid) {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        require(user.amount >= _amount, "withdraw: not good");
+        updatePool(_pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.rewardTokenPerShare).div(1e12).sub(user.pendingReward);
+            if (pending > 0) {
+                safeMtkTransfer(msg.sender, pending);
+            }
+        }
+        if (_amount > 0) {
+            user.amount = user.amount.sub(_amount);
+            pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        }
+        user.pendingReward = user.amount.mul(pool.rewardTokenPerShare).div(1e12);
+        emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    function autoCompound() public {
+        PoolInfo storage pool = poolInfo[0];
+        UserInfo storage user = userInfo[0][msg.sender];
+        updatePool(0);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.mul(pool.rewardTokenPerShare).div(1e12).sub(user.pendingReward);
+            if(pending > 0) {
+                user.amount = user.amount.add(pending);
+            }
+        }
+        user.pendingReward = user.amount.mul(pool.rewardTokenPerShare).div(1e12);
+    }
+
+    function EmergencyWithdraw(uint256 _pid) public {
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
+        user.amount = 0;
+        user.pendingReward = 0;
+    }
+
+    function changeDev(address _devaddr) public {
+        require (msg.sender == devaddr, "Not Authorized");
+        devaddr = _devaddr;
+    }
+
 }
