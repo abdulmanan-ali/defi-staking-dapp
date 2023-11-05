@@ -203,7 +203,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         mtk.safeMtkTransfer(_to, _amount);
     }
 
-    function stake(uint256 _pid, uint256 amount) public validatePool(_pid) {
+    function stake(uint256 _pid, uint256 _amount) public validatePool(_pid) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -221,7 +221,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    function unstake(uint256 _pid, uint256 amount) public validatePool(_pid) {
+    function unstake(uint256 _pid, uint256 _amount) public validatePool(_pid) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -253,7 +253,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         user.pendingReward = user.amount.mul(pool.rewardTokenPerShare).div(1e12);
     }
 
-    function EmergencyWithdraw(uint256 _pid) public {
+    function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
