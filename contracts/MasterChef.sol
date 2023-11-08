@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ERC20.sol";
+import "./MTKPay.sol";
 
 // -----------------------Formulas--------------------------
 
@@ -32,6 +33,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     }
 
     MTKRewards public mtk;
+    MTKPay public mtkpay;
     address public devaddr;
     uint256 public mtkPerBlock;
 
@@ -42,18 +44,20 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     uint256 public startBlock;
     uint256 public BONUS_MULTIPLIER;
 
-    event Deposit (address indexed user, uint256 indexed pid, uint256 amount);
-    event Withdraw (address indexed user, uint256 indexed pid, uint256 amount);
-    event EmergencyWithdraw (address indexed user, uint256 indexed pid, uint256 amount);
+    event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
+    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
         MTKRewards _mtk,
+        MTKPay _mtkpay,
         address _devaddr,
         uint256 _mtkPerBlock,
         uint256 _startBlock,
         uint256 _multiplier
     ) public {
         mtk = _mtk;
+        mtkpay = _mtkpay;
         devaddr = _devaddr;
         mtkPerBlock = _mtkPerBlock;
         startBlock = _startBlock;
@@ -169,7 +173,7 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
     }
 
     function massUpdatePools() public { 
-        uint256 length = poolInfo.legth;
+        uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
             updatePool(pid);
         }
