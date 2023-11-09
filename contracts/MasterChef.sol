@@ -137,7 +137,10 @@ contract MTKMasterChefV1 is Ownable, ReentrancyGuard {
         }
     }
 
-    function add(uint256 _allocPoint, IERC20 _lpToken) public onlyOwner {
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withupdate) public onlyOwner {
+        if (_withupdate) {
+            massUpdatePools();
+        }
         checkDuplicatePool(_lpToken);
         uint256 lastRewardBlock = block.number > startBlock
             ? block.number
